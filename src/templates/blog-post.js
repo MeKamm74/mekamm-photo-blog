@@ -2,6 +2,7 @@ import React from 'react'
 import { Link, graphql } from 'gatsby'
 import get from 'lodash/get'
 import { renderRichText } from 'gatsby-source-contentful/rich-text'
+import { GatsbyImage, getImage } from 'gatsby-plugin-image'
 import { documentToPlainTextString } from '@contentful/rich-text-plain-text-renderer'
 import readingTime from 'reading-time'
 
@@ -21,6 +22,25 @@ class BlogPostTemplate extends React.Component {
     )
     const plainTextBody = documentToPlainTextString(JSON.parse(post.body.raw))
     const { minutes: timeToRead } = readingTime(plainTextBody)
+
+    console.log(post.body.raw)
+
+    const richTextOptions = {
+      renderNode: {
+        'embedded-asset-block': (node) => {
+          const { gatsbyImageData, description } = node.data.target
+          return (
+            <div className={styles.imageContainer}>
+              <GatsbyImage
+                image={getImage(gatsbyImageData)}
+                alt={description}
+              />
+              <p>{description}</p>
+            </div>
+          )
+        }
+      }
+    }
 
     return (
       <Layout location={this.props.location}>
@@ -42,7 +62,7 @@ class BlogPostTemplate extends React.Component {
           </span>
           <div className={styles.article}>
             <div className={styles.body}>
-              {post.body?.raw && renderRichText(post.body)}
+              {post.body?.raw && renderRichText(post.body, richTextOptions)}
             </div>
             <Tags tags={post.tags} />
             {(previous || next) && (
@@ -96,6 +116,15 @@ export const pageQuery = graphql`
       }
       body {
         raw
+        references {
+          ... on ContentfulAsset {
+            contentful_id
+            title
+            description
+            gatsbyImageData(width: 1000)
+            __typename
+          }
+        }
       }
       tags
       description {
